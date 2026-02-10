@@ -5,11 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Mecha Hand</title>
 
-<!-- PWA-ish / immersive hints -->
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <style>
 :root{
   --bg:#0f172a;
@@ -29,18 +24,18 @@
   --radius:18px;
   --radius2:16px;
 }
+
 *{box-sizing:border-box}
 html,body{height:100%}
+
 body{
   margin:0;
   background:radial-gradient(1100px 650px at 20% 0%,#16224a 0%,var(--bg) 55%) fixed;
   color:var(--text);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   -webkit-tap-highlight-color:transparent;
-  overflow:hidden; /* immersive */
 }
 
-/* App shell */
 .app{
   min-height:100dvh;
   display:flex;
@@ -51,6 +46,7 @@ body{
 
 h1{margin:0 0 2px}
 .muted{color:var(--muted); margin:0 0 10px; line-height:1.35}
+
 .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
 
 .btn{
@@ -91,15 +87,6 @@ h1{margin:0 0 2px}
   align-items:center;
   gap:10px;
   margin-bottom:10px;
-}
-.smallPill{
-  font-size:12px;
-  padding:6px 10px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:rgba(255,255,255,.04);
-  color:var(--muted);
-  white-space:nowrap;
 }
 
 .bars{display:flex;flex-direction:column;gap:10px}
@@ -160,21 +147,9 @@ h1{margin:0 0 2px}
   padding:12px;
   margin-bottom:10px;
 }
-.popupTitle{
-  font-weight:950;
-  font-size:14px;
-}
-.popupBody{
-  margin-top:6px;
-  color:var(--text);
-  line-height:1.35;
-}
-.popupSub{
-  margin-top:6px;
-  color:var(--muted);
-  font-size:13px;
-  line-height:1.35;
-}
+.popupTitle{ font-weight:950; font-size:14px; }
+.popupBody{ margin-top:6px; color:var(--text); line-height:1.35; }
+.popupSub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35; }
 .popupActions{
   display:flex;
   gap:10px;
@@ -210,6 +185,7 @@ h1{margin:0 0 2px}
   background:rgba(255,255,255,.04);
   color:var(--muted);
 }
+
 .card.selected{
   border-color:rgba(59,130,246,.55);
   box-shadow:0 0 0 1px rgba(59,130,246,.35), 0 18px 60px rgba(59,130,246,.10);
@@ -220,27 +196,18 @@ h1{margin:0 0 2px}
   cursor:not-allowed;
 }
 
-/* Fullscreen prompt */
-.fsPrompt{
-  position:fixed; inset:0;
+/* Error box */
+.errorBox{
+  margin-top:10px;
+  border:1px solid rgba(239,68,68,.45);
+  background:rgba(239,68,68,.08);
+  border-radius:16px;
+  padding:12px;
+  color:#fecaca;
   display:none;
-  align-items:flex-end;
-  justify-content:center;
-  padding:16px;
-  background:linear-gradient(180deg, rgba(2,6,23,.15), rgba(2,6,23,.70));
-  z-index:9999;
+  white-space:pre-wrap;
+  font-size:12px;
 }
-.fsPromptCard{
-  width:min(560px, 100%);
-  border:1px solid rgba(148,163,184,.22);
-  background:linear-gradient(180deg, rgba(17,24,39,.98), rgba(15,23,42,.98));
-  border-radius:18px;
-  box-shadow:0 22px 90px rgba(0,0,0,.6);
-  padding:14px;
-}
-.fsPromptTitle{font-weight:950}
-.fsPromptSub{color:var(--muted);margin-top:6px;line-height:1.35}
-.fsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 </style>
 </head>
 
@@ -248,7 +215,7 @@ h1{margin:0 0 2px}
 <div class="app">
   <div>
     <h1>Mecha Hand</h1>
-    <div class="muted">Select cards until you run out of energy — then Play Selected. If you can’t (or don’t want to), End Turn.</div>
+    <div class="muted">Select cards until you run out of energy — then Play Selected.</div>
     <div class="row">
       <button class="btn primary" id="newBtn">New Game</button>
       <button class="btn" id="rulesBtn">Rules</button>
@@ -274,21 +241,8 @@ h1{margin:0 0 2px}
     </div>
 
     <div class="hand" id="hand"></div>
-  </div>
-</div>
 
-<!-- Fullscreen prompt -->
-<div class="fsPrompt" id="fsPrompt" role="dialog" aria-modal="true">
-  <div class="fsPromptCard">
-    <div class="fsPromptTitle">Immersive Mode</div>
-    <div class="fsPromptSub">
-      Tap <b>Enter Fullscreen</b> for an immersive view.
-      (Browsers require a tap to enable fullscreen.)
-    </div>
-    <div class="fsRow">
-      <button class="btn primary" id="fsEnterBtn">Enter Fullscreen</button>
-      <button class="btn ghost" id="fsLaterBtn">Not now</button>
-    </div>
+    <div class="errorBox" id="errorBox"></div>
   </div>
 </div>
 
@@ -307,44 +261,6 @@ h1{margin:0 0 2px}
   function esc(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]))}
   function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
-  /* ====== Fullscreen helper (best possible) ====== */
-  function requestFullscreen(){
-    const el = document.documentElement;
-    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if(req) req.call(el);
-  }
-  function isFullscreen(){
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-  }
-  (function setupImmersiveFullscreen(){
-    const fsPrompt = document.getElementById("fsPrompt");
-    const enterBtn = document.getElementById("fsEnterBtn");
-    const laterBtn = document.getElementById("fsLaterBtn");
-    if(!fsPrompt || !enterBtn || !laterBtn) return;
-
-    const show = ()=>{ if(!isFullscreen()) fsPrompt.style.display="flex"; };
-    const hide = ()=>{ fsPrompt.style.display="none"; };
-
-    enterBtn.addEventListener("click", ()=>{ haptic("ok"); try{ requestFullscreen(); }catch(_){} hide(); });
-    laterBtn.addEventListener("click", ()=>{ haptic("tap"); hide(); });
-
-    let tried=false;
-    document.addEventListener("pointerdown",(e)=>{
-      if(tried) return;
-      if(e.target.closest("button")) return;
-      tried=true;
-      if(!isFullscreen()){
-        try{ requestFullscreen(); }catch(_){}
-        hide();
-      }
-    }, {passive:true});
-
-    document.addEventListener("fullscreenchange", ()=>{ if(isFullscreen()) hide(); });
-
-    setTimeout(show, 250);
-  })();
-
-  /* ====== UI refs ====== */
   const playerPanel = document.getElementById("playerPanel");
   const enemyPanel  = document.getElementById("enemyPanel");
   const handEl      = document.getElementById("hand");
@@ -356,26 +272,31 @@ h1{margin:0 0 2px}
   const popupSub     = document.getElementById("popupSub");
   const popupActions = document.getElementById("popupActions");
 
-  /* popup lock: when showing "Round resolved" / "Victory" etc, End Turn must not be available */
-  let popupLocked = false;
+  const errorBox = document.getElementById("errorBox");
+  function showError(err){
+    errorBox.style.display="block";
+    errorBox.textContent =
+      "⚠️ A script error stopped the game from drawing cards.\n\n" +
+      (err && err.stack ? err.stack : String(err));
+  }
 
-  function showPopup({title="", body="", sub="", actionsHTML="", lock=false}){
-    popupLocked = !!lock;
+  // Catch unexpected errors so you never get a blank hand again
+  window.addEventListener("error", (e)=>{ showError(e.error || e.message); });
+  window.addEventListener("unhandledrejection", (e)=>{ showError(e.reason || e); });
+
+  function showPopup({title="", body="", sub="", actionsHTML=""}){
     popupTitle.textContent = title;
     popupBody.innerHTML = body;
     popupSub.textContent = sub;
     popupActions.innerHTML = actionsHTML;
     popup.style.display = "block";
-    render(); // ensure buttons reflect lock state
   }
   function hidePopup(){
-    popupLocked = false;
     popup.style.display = "none";
     popupTitle.textContent = "";
     popupBody.innerHTML = "";
     popupSub.textContent = "";
     popupActions.innerHTML = "";
-    render();
   }
 
   /* ====== Cards ====== */
@@ -398,7 +319,7 @@ h1{margin:0 0 2px}
     return "utility";
   }
 
-  /* Enemy plan labels (displayed without using the word "intent") */
+  /* ====== Enemy plan labels (no "intent" word in UI) ====== */
   const ENEMY_PLAN = {
     ALL_OUT_ASSAULT: "All-Out Assault",
     FORTIFY_POSITION: "Fortify Position",
@@ -410,14 +331,14 @@ h1{margin:0 0 2px}
 
   function mech(){ return { hp:30, armor:0, energy:3, heat:0, overheated:false, meltdown:false }; }
 
+  let S=null;
+
   function setOverheatFlags(){
     S.player.overheated = S.player.heat >= 8;
     S.enemy.overheated  = S.enemy.heat  >= 8;
     S.player.meltdown   = S.player.heat >= 10;
     S.enemy.meltdown    = S.enemy.heat  >= 10;
   }
-
-  let S=null;
 
   function buildDeck(){
     const picks=[];
@@ -429,6 +350,7 @@ h1{margin:0 0 2px}
     shuffle(S.deck);
     S.discard = [];
   }
+
   function draw(n){
     while(n-- > 0){
       if(S.deck.length===0){
@@ -440,13 +362,12 @@ h1{margin:0 0 2px}
     }
   }
 
-  function computeEnemyPlanId(){
+  function computeEnemyPlan(){
     const e=S.enemy, p=S.player;
     if(e.hp<=10) return "EMERGENCY_RECOVERY";
     if(e.heat>=8) return "SYSTEMS_CALIBRATION";
     if(p.hp<=10) return "OVERCHARGE_STRIKE";
     if(e.armor<=2 && e.hp>=18) return "ALL_OUT_ASSAULT";
-    if(e.armor<=2 && e.hp<18) return "MEASURED_ADVANCE";
     if(e.armor>=6 || e.hp<=14) return "FORTIFY_POSITION";
     return "MEASURED_ADVANCE";
   }
@@ -460,7 +381,6 @@ h1{margin:0 0 2px}
     const pPenalty = S.player.meltdown ? 1 : 0;
     const ePenalty = S.enemy.meltdown  ? 1 : 0;
 
-    /* Energy refill happens at start of round (important rule) */
     S.player.energy = clamp(S.player.energy + 2 - pPenalty, 0, 6);
     S.player.heat   = clamp(S.player.heat - 1, 0, 99);
 
@@ -469,7 +389,7 @@ h1{margin:0 0 2px}
 
     draw(5);
 
-    S.enemyPlanId = computeEnemyPlanId();
+    S.enemyPlanId = computeEnemyPlan();
     S.enemyPlanLabel = ENEMY_PLAN[S.enemyPlanId];
 
     setOverheatFlags();
@@ -497,10 +417,6 @@ h1{margin:0 0 2px}
     return { armorHit, hpHit };
   }
 
-  /* Resolution timing note:
-     - Effects apply immediately as cards are resolved in order (player chain, then enemy 2 cards)
-     - Heal/energy/armor/heat changes happen when that card resolves
-  */
   function playCard(who, c){
     const P = (who==="player") ? S.player : S.enemy;
     const E = (who==="player") ? S.enemy  : S.player;
@@ -602,7 +518,6 @@ h1{margin:0 0 2px}
       return s;
     }
 
-    const intent = S.enemyPlanId;
     const typed = temp.map(c=>({ c, t: cardType(c), sc: score(c) }));
 
     function best(pred){
@@ -614,40 +529,34 @@ h1{margin:0 0 2px}
       if(idx>=0) typed.splice(idx,1);
     }
 
+    const plan = S.enemyPlanId;
     let first=null, second=null;
 
-    if(intent==="ALL_OUT_ASSAULT"){
+    if(plan==="ALL_OUT_ASSAULT"){
       first = best(x=>x.t==="attack") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.t==="attack") || best(x=>x.t==="utility") || best(()=>true);
-    }
-    else if(intent==="FORTIFY_POSITION"){
+    }else if(plan==="FORTIFY_POSITION"){
       first = best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.t==="attack") || best(x=>x.t==="defense") || best(()=>true);
-    }
-    else if(intent==="MEASURED_ADVANCE"){
+    }else if(plan==="MEASURED_ADVANCE"){
       first = best(x=>x.t==="attack") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.t!=="attack") || best(()=>true);
-    }
-    else if(intent==="SYSTEMS_CALIBRATION"){
+    }else if(plan==="SYSTEMS_CALIBRATION"){
       first = best(x=>x.t==="utility") || best(x=>x.t==="defense") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.t==="utility") || best(x=>x.t==="defense") || best(()=>true);
-    }
-    else if(intent==="OVERCHARGE_STRIKE"){
+    }else if(plan==="OVERCHARGE_STRIKE"){
       first = best(x=>x.t==="attack") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.t==="attack") || best(x=>x.t==="utility") || best(()=>true);
-    }
-    else if(intent==="EMERGENCY_RECOVERY"){
-      /* IMPORTANT: This is the ENEMY that avoids attack if possible (not the player). */
+    }else if(plan==="EMERGENCY_RECOVERY"){
       first = best(x=>x.c.eff.heal) || best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
       if(first) removeFromPool(first);
       second = best(x=>x.c.eff.heal) || best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
-    }
-    else{
+    }else{
       first = best(()=>true);
       if(first) removeFromPool(first);
       second = best(()=>true);
@@ -677,60 +586,16 @@ h1{margin:0 0 2px}
     };
   }
 
-  /* End turn (no selection): player plays nothing, enemy still acts */
-  function endTurn(){
-    if(popupLocked) return; // blocked during resolved screen
-    if(S.player.hp<=0 || S.enemy.hp<=0) return;
-
-    haptic("ok");
-
-    // player discards entire hand (did nothing)
-    S.hand.forEach(c=>S.discard.push(c));
-    S.hand=[];
-    S.selected=[];
-
-    const enemyResult = enemyTurn();
-
-    setOverheatFlags();
-    const extra=[];
-    if(S.player.meltdown){ S.player.hp=clamp(S.player.hp-3,0,30); extra.push("⚠️ Meltdown: your reactor spikes (−3 HP)."); }
-    if(S.enemy.meltdown){ S.enemy.hp=clamp(S.enemy.hp-3,0,30); extra.push("⚠️ Enemy meltdown (−3 HP)."); }
-
-    // If enemy died, we still show resolve first, then let player continue
-    S.round++;
-    startRound();
-    render();
-
-    const body =
-      `<b>You ended the turn.</b><br>`+
-      `You held position and let the battlefield develop.<br><br>`+
-      `<b>Enemy plan:</b> ${esc(S.enemyPlanLabel)}<br>`+
-      `<b>Enemy played:</b> ${enemyResult.chosenNames}<br>`+
-      `${enemyResult.lines.map(esc).join("<br>")}`+
-      (enemyResult.comboNotes.length ? `<br><br><b>Enemy combo:</b><br>${enemyResult.comboNotes.map(esc).join("<br>")}` : "")+
-      (extra.length?`<br><br><span style="color:var(--pink)">${extra.map(esc).join("<br>")}</span>`:"");
-
-    showPopup({
-      title:"Round resolved",
-      body,
-      sub:"Select cards for the next round.",
-      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-      lock:true
-    });
-
-    checkVictoryDefeat(); // will show Victory/Defeat if needed
-  }
-
   function playSelected(){
-    if(popupLocked) return;
+    if(S.enemy.hp<=0 || S.player.hp<=0) return;
+
     if(S.selected.length===0){
       haptic("warn");
       showPopup({
         title:"No cards selected",
-        body:"Select at least 1 card before playing, or End Turn.",
+        body:"Select at least 1 card before playing.",
         sub:"You can play as many as your energy allows.",
-        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-        lock:true
+        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`
       });
       return;
     }
@@ -771,15 +636,13 @@ h1{margin:0 0 2px}
       ? `<br><br><b>Enemy combo:</b><br>${enemyResult.comboNotes.map(esc).join("<br>")}`
       : "";
 
-    // next round
-    S.hand=[];
-    S.selected=[];
-    S.round++;
-    startRound();
-    render();
+    // BEFORE starting a new round, check win/lose
+    const isWin  = S.enemy.hp<=0;
+    const isLose = S.player.hp<=0;
+    render(); // update bars immediately
 
     showPopup({
-      title:"Round resolved",
+      title: isWin ? "Victory" : (isLose ? "Defeat" : "Round resolved"),
       body:
         `<b>You played:</b> ${playedNames}<br>`+
         `${pLines.map(esc).join("<br>")}`+
@@ -789,28 +652,32 @@ h1{margin:0 0 2px}
         `${enemyResult.lines.map(esc).join("<br>")}`+
         enemyComboText+
         (extra.length?`<br><br><span style="color:var(--pink)">${extra.map(esc).join("<br>")}</span>`:""),
-      sub:"Select cards for the next round.",
-      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-      lock:true
+      sub: isWin ? "Start the next fight?" : (isLose ? "Start a new game?" : "Continue to next round."),
+      actionsHTML: isWin
+        ? `<button class="btn primary" onclick="nextFight()">OK</button>`
+        : (isLose
+            ? `<button class="btn primary" onclick="newGame()">New Game</button>`
+            : `<button class="btn primary" onclick="nextRound()">OK</button>`)
     });
 
-    checkVictoryDefeat();
+    // Clear selection and hand now; nextRound/nextFight will rebuild
+    S.hand=[];
+    S.selected=[];
   }
 
-  function checkVictoryDefeat(){
-    // FIX: if enemy HP hits 0, show victory and allow progression
-    if(S.player.hp<=0 || S.enemy.hp<=0){
-      const msg = (S.player.hp<=0 && S.enemy.hp<=0) ? "Draw" : (S.enemy.hp<=0 ? "Victory" : "Defeat");
-      showPopup({
-        title: msg,
-        body: (msg==="Victory")
-          ? "The enemy mech collapses. The field is yours."
-          : "Your systems fail and the cockpit goes dark.",
-        sub: "Start a new game?",
-        actionsHTML:`<button class="btn primary" onclick="newGame()">New Game</button>`,
-        lock:true
-      });
-    }
+  function nextRound(){
+    hidePopup();
+    S.round++;
+    startRound();
+    render();
+  }
+
+  function nextFight(){
+    hidePopup();
+    // For now: just refresh enemy and continue (keeps your mechanics; you can expand later)
+    S.enemy = mech();
+    startRound();
+    render();
   }
 
   function barHtml(label, value, max, color){
@@ -823,18 +690,13 @@ h1{margin:0 0 2px}
     `;
   }
 
-  function renderSide(title, mech, planLabel, planBelowStable){
+  function renderSide(title, mech, planLabel, showPlan){
     const hpColor = (mech.hp<=10) ? "var(--red)" : (mech.hp<=18 ? "var(--amber)" : "var(--green)");
     const heatColor = (mech.heat>=10) ? "var(--red)" : (mech.heat>=8 ? "var(--amber)" : "var(--pink)");
-    const stable =
-      mech.heat>=10 ? "⚠️ Meltdown: end-of-round −3 HP, next round −1 energy." :
-      mech.heat>=8  ? "⚠️ Overheated: attacks deal −2 damage." :
+    const heatMsg =
+      mech.heat>=10 ? "⚠️ Reactor critical." :
+      mech.heat>=8  ? "⚠️ Overheated." :
                       "✅ Reactor stable.";
-
-    // “Plan” label placement: under stable line on enemy panel
-    const planLine = planBelowStable
-      ? `<div class="muted" style="margin-top:8px"><span class="smallPill">Plan: ${esc(planLabel)}</span></div>`
-      : "";
 
     return `
       <div class="sideTitle">
@@ -846,83 +708,74 @@ h1{margin:0 0 2px}
         ${barHtml("Energy", mech.energy, 6, "var(--amber)")}
         ${barHtml("Heat", mech.heat, 10, heatColor)}
       </div>
-      <div class="muted" style="margin-top:10px">${stable}</div>
-      ${planLine}
+      <div class="muted" style="margin-top:10px">${heatMsg}</div>
+      ${showPlan ? `<div class="muted" style="margin-top:8px"><b>Plan:</b> ${esc(planLabel)}</div>` : ``}
     `;
   }
 
   function render(){
-    if(!S) return;
+    try{
+      setOverheatFlags();
 
-    setOverheatFlags();
+      playerPanel.innerHTML = renderSide("🧑 Player", S.player, "", false);
+      enemyPanel.innerHTML  = renderSide("🤖 Enemy",  S.enemy,  S.enemyPlanLabel, true);
 
-    playerPanel.innerHTML = renderSide("🧑 Player", S.player, "", false);
-    enemyPanel.innerHTML  = renderSide("🤖 Enemy",  S.enemy, S.enemyPlanLabel, true);
+      const cost = selectedCost();
+      const rem = remainingEnergy();
+      const remClass = rem >= 2 ? "ok" : (rem >= 0 ? "warn" : "bad");
 
-    const cost = selectedCost();
-    const rem = remainingEnergy();
-    const remClass = rem >= 2 ? "ok" : (rem >= 0 ? "warn" : "bad");
+      handPill.innerHTML =
+        `<strong>Energy</strong>: ${S.player.energy} • <strong>Selected</strong>: ${cost} • <strong class="${remClass}">Rem.</strong>: ${rem}`;
 
-    handPill.innerHTML =
-      `<strong>Energy</strong>: ${S.player.energy} • <strong>Selected</strong>: ${cost} • <strong class="${remClass}">Rem.</strong>: ${rem}`;
+      // If hand is empty for any reason, auto-fix it
+      if(!S.hand || S.hand.length===0){
+        S.hand=[];
+        draw(5);
+      }
 
-    // End Turn button logic:
-    // - Blue End Turn only when no cards selected
-    // - Once a card is selected, End Turn disappears (Play Selected exists)
-    // - If popupLocked (round resolved), show NO end turn and no alternative button
-    let actionHTML = "";
-    if(!popupLocked){
-      if(S.selected.length===0){
-        actionHTML = `
-          <button class="btn primary" onclick="endTurn()">End Turn</button>
-        `;
-      }else{
-        actionHTML = `
+      const selectedNames = S.selected.map(i=>S.hand[i]).filter(Boolean).map(c=>c.name);
+      const chain = selectedNames.length ? selectedNames.map(esc).join(" → ") : "None";
+
+      showPopup({
+        title:"Your selection",
+        body:`<b>Chain:</b> ${chain}<br><b>Cost:</b> ${cost} / ${S.player.energy}`,
+        sub:"Tap selected cards again to unselect. When ready, play your chain.",
+        actionsHTML:`
           <button class="btn ghost" onclick="clearSelection()">Clear</button>
           <button class="btn primary" onclick="playSelected()">Play Selected</button>
-        `;
-      }
-    }else{
-      actionHTML = ``;
-    }
+        `
+      });
 
-    const selectedNames = S.selected.map(i=>S.hand[i]).filter(Boolean).map(c=>c.name);
-    const chain = selectedNames.length ? selectedNames.map(esc).join(" → ") : "None";
+      handEl.innerHTML = S.hand.map((c,idx)=>{
+        const selected = S.selected.includes(idx);
+        const disabled = !selected && wouldExceedEnergy(idx);
+        const t = cardType(c);
+        const tLabel = t==="attack" ? "Attack" : (t==="defense" ? "Defense" : "Utility");
 
-    showPopup({
-      title:"Your selection",
-      body:`<b>Chain:</b> ${chain}<br><b>Cost:</b> ${cost} / ${S.player.energy}`,
-      sub: popupLocked ? "" : "Tap selected cards again to unselect.",
-      actionsHTML: actionHTML,
-      lock: popupLocked // keep state consistent
-    });
-
-    handEl.innerHTML = S.hand.map((c,idx)=>{
-      const selected = S.selected.includes(idx);
-      const disabled = !selected && wouldExceedEnergy(idx);
-      const t = cardType(c);
-      const tLabel = t==="attack" ? "Attack" : (t==="defense" ? "Defense" : "Utility");
-
-      return `
-        <div class="card ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}"
-             onclick="selectCard(${idx})"
-             aria-disabled="${disabled ? "true" : "false"}">
-          <b>${selected ? "✅ " : ""}${esc(c.name)}</b>
-          <div class="desc">${esc(c.desc)}</div>
-          <div class="meta">
-            <span class="tag">${esc(c.meta)}</span>
-            <span class="tag">Type: ${tLabel}</span>
-            <span class="tag">⚡ Cost ${c.eff.cost||0}</span>
+        return `
+          <div class="card ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}"
+               onclick="selectCard(${idx})"
+               aria-disabled="${disabled ? "true" : "false"}">
+            <b>${selected ? "✅ " : ""}${esc(c.name)}</b>
+            <div class="desc">${esc(c.desc)}</div>
+            <div class="meta">
+              <span class="tag">${esc(c.meta)}</span>
+              <span class="tag">Type: ${tLabel}</span>
+              <span class="tag">⚡ Cost ${c.eff.cost||0}</span>
+            </div>
           </div>
-        </div>
-      `;
-    }).join("");
+        `;
+      }).join("");
+
+      errorBox.style.display="none";
+      errorBox.textContent="";
+    }catch(err){
+      showError(err);
+    }
   }
 
   function selectCard(idx){
-    if(popupLocked) return;
     if(S.player.hp<=0 || S.enemy.hp<=0) return;
-
     haptic("tap");
 
     const pos = S.selected.indexOf(idx);
@@ -942,9 +795,8 @@ h1{margin:0 0 2px}
         body:`You have <b>${S.player.energy}</b> energy.<br>
               Selected cost: <b>${costNow}</b>.<br>
               <b>${esc(c?.name || "That card")}</b> costs <b>${cCost}</b>, which would exceed your energy.`,
-        sub:"Unselect a card, End Turn, or pick a cheaper option.",
-        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-        lock:true
+        sub:"Unselect a card, or pick a cheaper option.",
+        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`
       });
       return;
     }
@@ -954,7 +806,6 @@ h1{margin:0 0 2px}
   }
 
   function clearSelection(){
-    if(popupLocked) return;
     haptic("tap");
     S.selected=[];
     render();
@@ -976,15 +827,7 @@ h1{margin:0 0 2px}
     };
     buildDeck();
     startRound();
-    popupLocked=false;
     render();
-    showPopup({
-      title:"Welcome",
-      body:"Select cards to form a chain, then hit <b>Play Selected</b>. If you can’t (or don’t want to), use <b>End Turn</b>.",
-      sub:"The enemy’s plan is shown under their reactor status. It’s a hint, not a guarantee.",
-      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-      lock:true
-    });
   }
 
   document.getElementById("newBtn").addEventListener("click", ()=>{ haptic("ok"); newGame(); });
@@ -994,56 +837,40 @@ h1{margin:0 0 2px}
     showPopup({
       title:"Rules",
       body: `
-<b>Goal</b><br>
-Reduce the enemy’s HP to 0 before yours hits 0.<br><br>
-
 <b>Round Flow</b><br>
-1) You select any number of cards (limited by energy).<br>
-2) <b>Play Selected</b> resolves your chain in order, then enemy resolves 2 cards.<br>
-3) Next round begins with energy refill and slight heat cooling.<br><br>
+Select cards (energy-limited) → <b>Play Selected</b> → enemy plays 2 → press OK.<br><br>
 
 <b>Energy</b><br>
-• You can only select cards whose total cost ≤ your current energy.<br>
-• Cards you can’t afford are disabled.<br>
-• If you select nothing, you can press <b>End Turn</b> (enemy still acts).<br><br>
-
-<b>When effects happen</b><br>
-Effects apply as each card resolves:<br>
-• Heal / Armor / Energy gains apply immediately when that card resolves.<br>
-• Damage is applied immediately (Armor absorbs first, then HP).<br><br>
-
-<b>Energy refill timing</b><br>
-At the <b>start of each round</b>:<br>
-• +2 Energy (max 6), but if in Meltdown: +2 then −1 penalty (net +1).<br><br>
-
-<b>Heat rules</b><br>
-At the <b>start of each round</b>: Heat −1.<br>
-• Heat 8+: Overheated → attacks deal −2 damage.<br>
-• Heat 10+: Meltdown → end-of-round −3 HP and next round −1 energy refill.<br><br>
+You can select as many cards as your energy allows. Cards you can’t afford are dimmed.<br><br>
 
 <b>Combos (apply between each pair in your chain)</b><br>
 • Attack→Attack: next +2 dmg, +2 heat<br>
 • Defense→Attack: next +3 dmg<br>
-• Utility→Attack: next attack costs −1 energy<br>
+• Utility→Attack: next attack costs -1 energy<br>
 • Attack→Defense: next defense +2 armor<br>
-• Utility→Defense: next defense also −2 heat<br><br>
+• Utility→Defense: next defense also -2 heat<br><br>
 
-<b>Enemy plan</b><br>
-The label under the enemy’s reactor status describes their general behavior (a hint), not the exact cards.`,
+<b>Heat</b><br>
+8+ Overheated: attacks deal −2 damage<br>
+10+ Reactor critical: end-of-round −3 HP + next round −1 energy<br><br>
+
+<b>Enemy Plan</b><br>
+Shown under Enemy status. It hints at behavior, not exact cards.`,
       sub:"OK to continue.",
-      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
-      lock:true
+      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`
     });
   });
 
-  // expose
+  // Expose
   window.selectCard = selectCard;
   window.clearSelection = clearSelection;
   window.playSelected = playSelected;
-  window.endTurn = endTurn;
   window.hidePopup = hidePopup;
   window.newGame = newGame;
+  window.nextRound = nextRound;
+  window.nextFight = nextFight;
 
+  // Start AFTER DOM is ready
   newGame();
 })();
 </script>
