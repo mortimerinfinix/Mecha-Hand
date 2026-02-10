@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Mecha Hand</title>
+
+<!-- PWA-ish / immersive hints -->
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --line:rgba(148,163,184,.22);
+  --text:#e5e7eb;
+  --muted:#a6b0bf;
+
+  --blue:#3b82f6;
+  --red:#ef4444;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --pink:#fb7185;
+
+  --shadow:0 0 0 1px rgba(148,163,184,.18),0 18px 60px rgba(0,0,0,.45);
+  --shadowHover:0 0 0 1px rgba(148,163,184,.35),0 22px 70px rgba(0,0,0,.55);
+  --radius:18px;
+  --radius2:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:radial-gradient(1100px 650px at 20% 0%,#16224a 0%,var(--bg) 55%) fixed;
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden; /* immersive */
+}
+
+/* App shell */
+.app{
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:14px;
+}
+
+h1{margin:0 0 2px}
+.muted{color:var(--muted); margin:0 0 10px; line-height:1.35}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+.btn{
+  padding:12px 16px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.btn:hover{box-shadow:var(--shadowHover)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(#3b82f6,#2563eb);border-color:#3b82f6}
+.btn.danger{background:linear-gradient(#ef4444,#dc2626);border-color:#ef4444}
+.btn.ghost{background:rgba(255,255,255,.04)}
+.btn[disabled]{opacity:.5; cursor:not-allowed; box-shadow:none}
+
+.panel{
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.03));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:12px;
+  box-shadow:var(--shadow);
+}
+
+/* SIDE-BY-SIDE */
+.board{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.board .panel{min-height:220px}
+
+.sideTitle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.smallPill{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:8px;
+  background:rgba(255,255,255,.04);
+}
+.barTop{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:7px;
+}
+.track{
+  height:10px;
+  background:rgba(148,163,184,.18);
+  border-radius:999px;
+  overflow:hidden;
+}
+.fill{height:100%}
+
+/* Hand */
+.handPanel{
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.handHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.pill{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+}
+.pill strong{color:var(--text)}
+.pill .ok{color:#bbf7d0}
+.pill .warn{color:#fde68a}
+.pill .bad{color:#fecaca}
+
+/* Popup area inside hand panel */
+.popup{
+  display:none;
+  border:1px solid rgba(148,163,184,.22);
+  background:linear-gradient(180deg,rgba(2,6,23,.55),rgba(2,6,23,.35));
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:10px;
+}
+.popupTitle{
+  font-weight:950;
+  font-size:14px;
+}
+.popupBody{
+  margin-top:6px;
+  color:var(--text);
+  line-height:1.35;
+}
+.popupSub{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.35;
+}
+.popupActions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.hand{
+  flex:1 1 auto;
+  overflow:auto;
+  min-height:0;
+  padding-right:2px;
+}
+.card{
+  margin:8px 0;
+  padding:12px;
+  border-radius:var(--radius2);
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.05);
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease, opacity .2s ease, filter .2s ease;
+}
+.card:hover{box-shadow:var(--shadowHover); background:rgba(255,255,255,.07)}
+.card:active{transform:scale(.985)}
+.card b{font-weight:950}
+.desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+.meta{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap}
+.tag{
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+}
+.card.selected{
+  border-color:rgba(59,130,246,.55);
+  box-shadow:0 0 0 1px rgba(59,130,246,.35), 0 18px 60px rgba(59,130,246,.10);
+}
+.card.disabled{
+  opacity:.45;
+  filter:saturate(.75);
+  cursor:not-allowed;
+}
+
+/* Fullscreen prompt */
+.fsPrompt{
+  position:fixed; inset:0;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  background:linear-gradient(180deg, rgba(2,6,23,.15), rgba(2,6,23,.70));
+  z-index:9999;
+}
+.fsPromptCard{
+  width:min(560px, 100%);
+  border:1px solid rgba(148,163,184,.22);
+  background:linear-gradient(180deg, rgba(17,24,39,.98), rgba(15,23,42,.98));
+  border-radius:18px;
+  box-shadow:0 22px 90px rgba(0,0,0,.6);
+  padding:14px;
+}
+.fsPromptTitle{font-weight:950}
+.fsPromptSub{color:var(--muted);margin-top:6px;line-height:1.35}
+.fsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div>
+    <h1>Mecha Hand</h1>
+    <div class="muted">Select cards until you run out of energy — then Play Selected. If you can’t (or don’t want to), End Turn.</div>
+    <div class="row">
+      <button class="btn primary" id="newBtn">New Game</button>
+      <button class="btn" id="rulesBtn">Rules</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="panel" id="playerPanel"></div>
+    <div class="panel" id="enemyPanel"></div>
+  </div>
+
+  <div class="panel handPanel">
+    <div class="handHeader">
+      <b>🃏 Your Hand</b>
+      <span class="pill" id="handPill"></span>
+    </div>
+
+    <div class="popup" id="popup">
+      <div class="popupTitle" id="popupTitle"></div>
+      <div class="popupBody" id="popupBody"></div>
+      <div class="popupSub" id="popupSub"></div>
+      <div class="popupActions" id="popupActions"></div>
+    </div>
+
+    <div class="hand" id="hand"></div>
+  </div>
+</div>
+
+<!-- Fullscreen prompt -->
+<div class="fsPrompt" id="fsPrompt" role="dialog" aria-modal="true">
+  <div class="fsPromptCard">
+    <div class="fsPromptTitle">Immersive Mode</div>
+    <div class="fsPromptSub">
+      Tap <b>Enter Fullscreen</b> for an immersive view.
+      (Browsers require a tap to enable fullscreen.)
+    </div>
+    <div class="fsRow">
+      <button class="btn primary" id="fsEnterBtn">Enter Fullscreen</button>
+      <button class="btn ghost" id="fsLaterBtn">Not now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}};
+  function haptic(kind="tap"){
+    if(!("vibrate" in navigator)) return;
+    try{
+      if(kind==="tap") navigator.vibrate(12);
+      else if(kind==="ok") navigator.vibrate([10,18,10]);
+      else if(kind==="warn") navigator.vibrate([35,25,35]);
+    }catch(_){}
+  }
+  function esc(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]))}
+  function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  /* ====== Fullscreen helper (best possible) ====== */
+  function requestFullscreen(){
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if(req) req.call(el);
+  }
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+  (function setupImmersiveFullscreen(){
+    const fsPrompt = document.getElementById("fsPrompt");
+    const enterBtn = document.getElementById("fsEnterBtn");
+    const laterBtn = document.getElementById("fsLaterBtn");
+    if(!fsPrompt || !enterBtn || !laterBtn) return;
+
+    const show = ()=>{ if(!isFullscreen()) fsPrompt.style.display="flex"; };
+    const hide = ()=>{ fsPrompt.style.display="none"; };
+
+    enterBtn.addEventListener("click", ()=>{ haptic("ok"); try{ requestFullscreen(); }catch(_){} hide(); });
+    laterBtn.addEventListener("click", ()=>{ haptic("tap"); hide(); });
+
+    let tried=false;
+    document.addEventListener("pointerdown",(e)=>{
+      if(tried) return;
+      if(e.target.closest("button")) return;
+      tried=true;
+      if(!isFullscreen()){
+        try{ requestFullscreen(); }catch(_){}
+        hide();
+      }
+    }, {passive:true});
+
+    document.addEventListener("fullscreenchange", ()=>{ if(isFullscreen()) hide(); });
+
+    setTimeout(show, 250);
+  })();
+
+  /* ====== UI refs ====== */
+  const playerPanel = document.getElementById("playerPanel");
+  const enemyPanel  = document.getElementById("enemyPanel");
+  const handEl      = document.getElementById("hand");
+  const handPill    = document.getElementById("handPill");
+
+  const popup        = document.getElementById("popup");
+  const popupTitle   = document.getElementById("popupTitle");
+  const popupBody    = document.getElementById("popupBody");
+  const popupSub     = document.getElementById("popupSub");
+  const popupActions = document.getElementById("popupActions");
+
+  /* popup lock: when showing "Round resolved" / "Victory" etc, End Turn must not be available */
+  let popupLocked = false;
+
+  function showPopup({title="", body="", sub="", actionsHTML="", lock=false}){
+    popupLocked = !!lock;
+    popupTitle.textContent = title;
+    popupBody.innerHTML = body;
+    popupSub.textContent = sub;
+    popupActions.innerHTML = actionsHTML;
+    popup.style.display = "block";
+    render(); // ensure buttons reflect lock state
+  }
+  function hidePopup(){
+    popupLocked = false;
+    popup.style.display = "none";
+    popupTitle.textContent = "";
+    popupBody.innerHTML = "";
+    popupSub.textContent = "";
+    popupActions.innerHTML = "";
+    render();
+  }
+
+  /* ====== Cards ====== */
+  const CARDS = [
+    card("Rail Shot","Deal 7 damage. +2 Heat.","⚔️ Attack • ⚡2 • 🔥+2",{cost:2, dmg:7, heat:+2}),
+    card("Burst Cannons","Deal 5 damage. If enemy has Armor, +3 damage. +1 Heat.","⚔️ Attack • ⚡2 • 🔥+1",{cost:2, dmg:5, bonusIfArmor:3, heat:+1}),
+    card("Vibro Blade","Deal 4 damage. If enemy is Overheated, +4 damage.","⚔️ Attack • ⚡1",{cost:1, dmg:4, bonusIfOverheat:4}),
+    card("Guard Plates","Gain 6 Armor. -1 Heat.","🛡️ Defense • ⚡2 • 🔥-1",{cost:2, armor:+6, heat:-1}),
+    card("Smoke Screen","Gain 4 Armor. Enemy next damage -3.","🛡️ Defense • ⚡2",{cost:2, armor:+4, damp:3}),
+    card("Coolant Flush","Reduce Heat by 4. Gain 1 Energy.","🧠 Utility • ⚡0 • 🔥-4",{cost:0, heat:-4, energy:+1}),
+    card("Overclock","Gain 3 Energy. +3 Heat.","🧠 Utility • ⚡0 • 🔥+3",{cost:0, energy:+3, heat:+3}),
+    card("Repair Drone","Heal 5. If Heat ≤ 2, heal +3.","🧠 Utility • ⚡2",{cost:2, heal:5, bonusHealIfCool:3}),
+    card("Plasma Lance","Deal 9 damage. +4 Heat.","⚔️ Attack • ⚡3 • 🔥+4",{cost:3, dmg:9, heat:+4}),
+  ];
+  function card(name, desc, meta, eff){ return { name, desc, meta, eff }; }
+  function cardType(c){
+    const e = c.eff || {};
+    if(typeof e.dmg==="number") return "attack";
+    if(typeof e.armor==="number" || typeof e.damp==="number") return "defense";
+    return "utility";
+  }
+
+  /* Enemy plan labels (displayed without using the word "intent") */
+  const ENEMY_PLAN = {
+    ALL_OUT_ASSAULT: "All-Out Assault",
+    FORTIFY_POSITION: "Fortify Position",
+    MEASURED_ADVANCE: "Measured Advance",
+    SYSTEMS_CALIBRATION: "Systems Calibration",
+    OVERCHARGE_STRIKE: "Overcharge Strike",
+    EMERGENCY_RECOVERY: "Emergency Recovery",
+  };
+
+  function mech(){ return { hp:30, armor:0, energy:3, heat:0, overheated:false, meltdown:false }; }
+
+  function setOverheatFlags(){
+    S.player.overheated = S.player.heat >= 8;
+    S.enemy.overheated  = S.enemy.heat  >= 8;
+    S.player.meltdown   = S.player.heat >= 10;
+    S.enemy.meltdown    = S.enemy.heat  >= 10;
+  }
+
+  let S=null;
+
+  function buildDeck(){
+    const picks=[];
+    while(picks.length<24){
+      const base = CARDS[picks.length % CARDS.length];
+      picks.push({ ...base, _id: base.name+"-"+Math.random().toString(16).slice(2,6) });
+    }
+    S.deck = picks;
+    shuffle(S.deck);
+    S.discard = [];
+  }
+  function draw(n){
+    while(n-- > 0){
+      if(S.deck.length===0){
+        if(S.discard.length===0) break;
+        S.deck = S.discard.splice(0);
+        shuffle(S.deck);
+      }
+      S.hand.push(S.deck.shift());
+    }
+  }
+
+  function computeEnemyPlanId(){
+    const e=S.enemy, p=S.player;
+    if(e.hp<=10) return "EMERGENCY_RECOVERY";
+    if(e.heat>=8) return "SYSTEMS_CALIBRATION";
+    if(p.hp<=10) return "OVERCHARGE_STRIKE";
+    if(e.armor<=2 && e.hp>=18) return "ALL_OUT_ASSAULT";
+    if(e.armor<=2 && e.hp<18) return "MEASURED_ADVANCE";
+    if(e.armor>=6 || e.hp<=14) return "FORTIFY_POSITION";
+    return "MEASURED_ADVANCE";
+  }
+
+  function startRound(){
+    S.hand=[];
+    S.selected=[];
+    S.dampToPlayer=0;
+    S.dampToEnemy=0;
+
+    const pPenalty = S.player.meltdown ? 1 : 0;
+    const ePenalty = S.enemy.meltdown  ? 1 : 0;
+
+    /* Energy refill happens at start of round (important rule) */
+    S.player.energy = clamp(S.player.energy + 2 - pPenalty, 0, 6);
+    S.player.heat   = clamp(S.player.heat - 1, 0, 99);
+
+    S.enemy.energy  = clamp(S.enemy.energy + 2 - ePenalty, 0, 6);
+    S.enemy.heat    = clamp(S.enemy.heat - 1, 0, 99);
+
+    draw(5);
+
+    S.enemyPlanId = computeEnemyPlanId();
+    S.enemyPlanLabel = ENEMY_PLAN[S.enemyPlanId];
+
+    setOverheatFlags();
+  }
+
+  function selectedCost(){
+    return S.selected.map(i=>S.hand[i]).filter(Boolean).reduce((sum,c)=>sum+(c.eff.cost||0),0);
+  }
+  function remainingEnergy(){
+    return S.player.energy - selectedCost();
+  }
+  function wouldExceedEnergy(idx){
+    if(S.selected.includes(idx)) return false;
+    const c=S.hand[idx];
+    if(!c) return true;
+    return (selectedCost() + (c.eff.cost||0)) > S.player.energy;
+  }
+
+  function applyDamage(target, dmg){
+    const armorHit = Math.min(target.armor, dmg);
+    target.armor -= armorHit;
+    dmg -= armorHit;
+    const hpHit = Math.max(0, dmg);
+    if(hpHit>0) target.hp = clamp(target.hp - hpHit, 0, 30);
+    return { armorHit, hpHit };
+  }
+
+  /* Resolution timing note:
+     - Effects apply immediately as cards are resolved in order (player chain, then enemy 2 cards)
+     - Heal/energy/armor/heat changes happen when that card resolves
+  */
+  function playCard(who, c){
+    const P = (who==="player") ? S.player : S.enemy;
+    const E = (who==="player") ? S.enemy  : S.player;
+    const eff = c.eff;
+
+    const cost = eff.cost||0;
+    if(P.energy < cost){
+      return `${who==="player"?"You":"Enemy"} tried ${c.name}, but lacked energy.`;
+    }
+    P.energy -= cost;
+
+    if(eff.energy) P.energy = clamp(P.energy + eff.energy, 0, 9);
+    if(eff.heat)   P.heat   = clamp(P.heat + eff.heat, 0, 99);
+    if(eff.armor)  P.armor  = clamp(P.armor + eff.armor, 0, 99);
+
+    if(eff.damp){
+      if(who==="player") S.dampToEnemy = eff.damp;
+      else S.dampToPlayer = eff.damp;
+      return `${who==="player"?"You":"Enemy"} used ${c.name} — next incoming damage is reduced.`;
+    }
+
+    if(eff.heal){
+      let heal = eff.heal;
+      if(eff.bonusHealIfCool && P.heat<=2) heal += eff.bonusHealIfCool;
+      const before=P.hp;
+      P.hp = clamp(P.hp + heal, 0, 30);
+      const gained=P.hp-before;
+      return `${who==="player"?"You":"Enemy"} used ${c.name} (+${gained} HP).`;
+    }
+
+    if(eff.dmg){
+      let dmg = eff.dmg;
+      if(eff.bonusIfArmor && E.armor>0) dmg += eff.bonusIfArmor;
+
+      setOverheatFlags();
+      if(eff.bonusIfOverheat && E.overheated) dmg += eff.bonusIfOverheat;
+      if(P.overheated) dmg = Math.max(0, dmg - 2);
+
+      if(who==="player" && S.dampToEnemy>0){ dmg=Math.max(0,dmg-S.dampToEnemy); S.dampToEnemy=0; }
+      if(who==="enemy" && S.dampToPlayer>0){ dmg=Math.max(0,dmg-S.dampToPlayer); S.dampToPlayer=0; }
+
+      const hit=applyDamage(E, dmg);
+      return `${who==="player"?"You":"Enemy"} used ${c.name} (−${hit.armorHit} armor, −${hit.hpHit} HP).`;
+    }
+
+    return `${who==="player"?"You":"Enemy"} used ${c.name}.`;
+  }
+
+  function applyCombo(first, second){
+    const t1 = cardType(first);
+    const t2 = cardType(second);
+    const comboNotes = [];
+    const secondEff = deepClone(second.eff);
+
+    if(t1==="attack" && t2==="attack"){
+      if(typeof secondEff.dmg==="number") secondEff.dmg += 2;
+      secondEff.heat = (secondEff.heat||0) + 2;
+      comboNotes.push("Combo: Attack→Attack (+2 dmg on next, +2 heat).");
+    }
+    if(t1==="defense" && t2==="attack"){
+      if(typeof secondEff.dmg==="number") secondEff.dmg += 3;
+      comboNotes.push("Combo: Defense→Attack (+3 dmg).");
+    }
+    if(t1==="utility" && t2==="attack"){
+      secondEff.cost = Math.max(0, (secondEff.cost||0) - 1);
+      comboNotes.push("Combo: Utility→Attack (attack costs -1 energy).");
+    }
+    if(t1==="attack" && t2==="defense"){
+      if(typeof secondEff.armor==="number") secondEff.armor += 2;
+      comboNotes.push("Combo: Attack→Defense (+2 armor).");
+    }
+    if(t1==="utility" && t2==="defense"){
+      secondEff.heat = (secondEff.heat||0) - 2;
+      comboNotes.push("Combo: Utility→Defense (-2 extra heat).");
+    }
+
+    return { secondCardMod: { ...second, eff: secondEff }, comboNotes };
+  }
+
+  function enemyTurn(){
+    const temp=[];
+    for(let i=0;i<5;i++){
+      if(S.deck.length===0){
+        if(S.discard.length===0) break;
+        S.deck = S.discard.splice(0);
+        shuffle(S.deck);
+      }
+      temp.push(S.deck.shift());
+    }
+
+    function score(c){
+      const eff=c.eff;
+      let s=0;
+      if(eff.heal)  s += (S.enemy.hp<=12? 14:6) + eff.heal;
+      if(eff.armor) s += 4 + eff.armor*0.7;
+      if(eff.dmg)   s += 7 + eff.dmg*0.95;
+      if(eff.energy) s += eff.energy*1.2;
+      if(eff.heat)  s -= Math.max(0, (S.enemy.heat+eff.heat)-7)*1.2;
+      return s;
+    }
+
+    const intent = S.enemyPlanId;
+    const typed = temp.map(c=>({ c, t: cardType(c), sc: score(c) }));
+
+    function best(pred){
+      const candidates = typed.filter(pred).sort((a,b)=>b.sc-a.sc);
+      return candidates.length ? candidates[0].c : null;
+    }
+    function removeFromPool(card){
+      const idx = typed.findIndex(x=>x.c===card);
+      if(idx>=0) typed.splice(idx,1);
+    }
+
+    let first=null, second=null;
+
+    if(intent==="ALL_OUT_ASSAULT"){
+      first = best(x=>x.t==="attack") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.t==="attack") || best(x=>x.t==="utility") || best(()=>true);
+    }
+    else if(intent==="FORTIFY_POSITION"){
+      first = best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.t==="attack") || best(x=>x.t==="defense") || best(()=>true);
+    }
+    else if(intent==="MEASURED_ADVANCE"){
+      first = best(x=>x.t==="attack") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.t!=="attack") || best(()=>true);
+    }
+    else if(intent==="SYSTEMS_CALIBRATION"){
+      first = best(x=>x.t==="utility") || best(x=>x.t==="defense") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.t==="utility") || best(x=>x.t==="defense") || best(()=>true);
+    }
+    else if(intent==="OVERCHARGE_STRIKE"){
+      first = best(x=>x.t==="attack") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.t==="attack") || best(x=>x.t==="utility") || best(()=>true);
+    }
+    else if(intent==="EMERGENCY_RECOVERY"){
+      /* IMPORTANT: This is the ENEMY that avoids attack if possible (not the player). */
+      first = best(x=>x.c.eff.heal) || best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(x=>x.c.eff.heal) || best(x=>x.t==="defense") || best(x=>x.t==="utility") || best(()=>true);
+    }
+    else{
+      first = best(()=>true);
+      if(first) removeFromPool(first);
+      second = best(()=>true);
+    }
+
+    if(!first && temp.length) first=temp[0];
+    if(!second){
+      const remaining = temp.filter(c=>c!==first);
+      second = remaining.length ? remaining[0] : first;
+    }
+
+    const chosen = [first, second].filter(Boolean);
+    const chosenSet = new Set(chosen);
+    temp.forEach(c=>{ if(!chosenSet.has(c)) S.discard.push(c); });
+
+    const combo = applyCombo(chosen[0], chosen[1]);
+    const lines=[];
+    lines.push(playCard("enemy", chosen[0]));
+    lines.push(playCard("enemy", combo.secondCardMod));
+
+    S.discard.push(chosen[0], chosen[1]);
+
+    return {
+      chosenNames: chosen.map(c=>esc(c.name)).join(" + "),
+      comboNotes: combo.comboNotes,
+      lines
+    };
+  }
+
+  /* End turn (no selection): player plays nothing, enemy still acts */
+  function endTurn(){
+    if(popupLocked) return; // blocked during resolved screen
+    if(S.player.hp<=0 || S.enemy.hp<=0) return;
+
+    haptic("ok");
+
+    // player discards entire hand (did nothing)
+    S.hand.forEach(c=>S.discard.push(c));
+    S.hand=[];
+    S.selected=[];
+
+    const enemyResult = enemyTurn();
+
+    setOverheatFlags();
+    const extra=[];
+    if(S.player.meltdown){ S.player.hp=clamp(S.player.hp-3,0,30); extra.push("⚠️ Meltdown: your reactor spikes (−3 HP)."); }
+    if(S.enemy.meltdown){ S.enemy.hp=clamp(S.enemy.hp-3,0,30); extra.push("⚠️ Enemy meltdown (−3 HP)."); }
+
+    // If enemy died, we still show resolve first, then let player continue
+    S.round++;
+    startRound();
+    render();
+
+    const body =
+      `<b>You ended the turn.</b><br>`+
+      `You held position and let the battlefield develop.<br><br>`+
+      `<b>Enemy plan:</b> ${esc(S.enemyPlanLabel)}<br>`+
+      `<b>Enemy played:</b> ${enemyResult.chosenNames}<br>`+
+      `${enemyResult.lines.map(esc).join("<br>")}`+
+      (enemyResult.comboNotes.length ? `<br><br><b>Enemy combo:</b><br>${enemyResult.comboNotes.map(esc).join("<br>")}` : "")+
+      (extra.length?`<br><br><span style="color:var(--pink)">${extra.map(esc).join("<br>")}</span>`:"");
+
+    showPopup({
+      title:"Round resolved",
+      body,
+      sub:"Select cards for the next round.",
+      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+      lock:true
+    });
+
+    checkVictoryDefeat(); // will show Victory/Defeat if needed
+  }
+
+  function playSelected(){
+    if(popupLocked) return;
+    if(S.selected.length===0){
+      haptic("warn");
+      showPopup({
+        title:"No cards selected",
+        body:"Select at least 1 card before playing, or End Turn.",
+        sub:"You can play as many as your energy allows.",
+        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+        lock:true
+      });
+      return;
+    }
+    haptic("ok");
+
+    const chosen = S.selected.map(i=>S.hand[i]).filter(Boolean);
+    const unplayed = S.hand.filter((_,i)=>!S.selected.includes(i));
+
+    const pLines=[];
+    const comboNotesAll=[];
+
+    for(let i=0;i<chosen.length;i++){
+      if(i===0){
+        pLines.push(playCard("player", chosen[i]));
+      }else{
+        const combo = applyCombo(chosen[i-1], chosen[i]);
+        comboNotesAll.push(...combo.comboNotes);
+        pLines.push(playCard("player", combo.secondCardMod));
+      }
+    }
+
+    chosen.forEach(c=>S.discard.push(c));
+    unplayed.forEach(c=>S.discard.push(c));
+
+    const enemyResult = enemyTurn();
+
+    setOverheatFlags();
+    const extra=[];
+    if(S.player.meltdown){ S.player.hp=clamp(S.player.hp-3,0,30); extra.push("⚠️ Meltdown: your reactor spikes (−3 HP)."); }
+    if(S.enemy.meltdown){ S.enemy.hp=clamp(S.enemy.hp-3,0,30); extra.push("⚠️ Enemy meltdown (−3 HP)."); }
+
+    const playedNames = chosen.map(c=>esc(c.name)).join(" → ");
+    const comboText = comboNotesAll.length
+      ? `<br><br><b>Combos triggered:</b><br>${[...new Set(comboNotesAll)].map(esc).join("<br>")}`
+      : `<br><br><b>No combos</b> (try mixing types in order).`;
+
+    const enemyComboText = enemyResult.comboNotes.length
+      ? `<br><br><b>Enemy combo:</b><br>${enemyResult.comboNotes.map(esc).join("<br>")}`
+      : "";
+
+    // next round
+    S.hand=[];
+    S.selected=[];
+    S.round++;
+    startRound();
+    render();
+
+    showPopup({
+      title:"Round resolved",
+      body:
+        `<b>You played:</b> ${playedNames}<br>`+
+        `${pLines.map(esc).join("<br>")}`+
+        comboText+
+        `<br><br><b>Enemy plan:</b> ${esc(S.enemyPlanLabel)}<br>`+
+        `<b>Enemy played:</b> ${enemyResult.chosenNames}<br>`+
+        `${enemyResult.lines.map(esc).join("<br>")}`+
+        enemyComboText+
+        (extra.length?`<br><br><span style="color:var(--pink)">${extra.map(esc).join("<br>")}</span>`:""),
+      sub:"Select cards for the next round.",
+      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+      lock:true
+    });
+
+    checkVictoryDefeat();
+  }
+
+  function checkVictoryDefeat(){
+    // FIX: if enemy HP hits 0, show victory and allow progression
+    if(S.player.hp<=0 || S.enemy.hp<=0){
+      const msg = (S.player.hp<=0 && S.enemy.hp<=0) ? "Draw" : (S.enemy.hp<=0 ? "Victory" : "Defeat");
+      showPopup({
+        title: msg,
+        body: (msg==="Victory")
+          ? "The enemy mech collapses. The field is yours."
+          : "Your systems fail and the cockpit goes dark.",
+        sub: "Start a new game?",
+        actionsHTML:`<button class="btn primary" onclick="newGame()">New Game</button>`,
+        lock:true
+      });
+    }
+  }
+
+  function barHtml(label, value, max, color){
+    const pct = max===0 ? 0 : (value/max)*100;
+    return `
+      <div class="bar">
+        <div class="barTop"><span>${label}</span><span>${value} / ${max}</span></div>
+        <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+    `;
+  }
+
+  function renderSide(title, mech, planLabel, planBelowStable){
+    const hpColor = (mech.hp<=10) ? "var(--red)" : (mech.hp<=18 ? "var(--amber)" : "var(--green)");
+    const heatColor = (mech.heat>=10) ? "var(--red)" : (mech.heat>=8 ? "var(--amber)" : "var(--pink)");
+    const stable =
+      mech.heat>=10 ? "⚠️ Meltdown: end-of-round −3 HP, next round −1 energy." :
+      mech.heat>=8  ? "⚠️ Overheated: attacks deal −2 damage." :
+                      "✅ Reactor stable.";
+
+    // “Plan” label placement: under stable line on enemy panel
+    const planLine = planBelowStable
+      ? `<div class="muted" style="margin-top:8px"><span class="smallPill">Plan: ${esc(planLabel)}</span></div>`
+      : "";
+
+    return `
+      <div class="sideTitle">
+        <b>${esc(title)}</b>
+      </div>
+      <div class="bars">
+        ${barHtml("HP", mech.hp, 30, hpColor)}
+        ${barHtml("Armor", mech.armor, 20, "var(--blue)")}
+        ${barHtml("Energy", mech.energy, 6, "var(--amber)")}
+        ${barHtml("Heat", mech.heat, 10, heatColor)}
+      </div>
+      <div class="muted" style="margin-top:10px">${stable}</div>
+      ${planLine}
+    `;
+  }
+
+  function render(){
+    if(!S) return;
+
+    setOverheatFlags();
+
+    playerPanel.innerHTML = renderSide("🧑 Player", S.player, "", false);
+    enemyPanel.innerHTML  = renderSide("🤖 Enemy",  S.enemy, S.enemyPlanLabel, true);
+
+    const cost = selectedCost();
+    const rem = remainingEnergy();
+    const remClass = rem >= 2 ? "ok" : (rem >= 0 ? "warn" : "bad");
+
+    handPill.innerHTML =
+      `<strong>Energy</strong>: ${S.player.energy} • <strong>Selected</strong>: ${cost} • <strong class="${remClass}">Rem.</strong>: ${rem}`;
+
+    // End Turn button logic:
+    // - Blue End Turn only when no cards selected
+    // - Once a card is selected, End Turn disappears (Play Selected exists)
+    // - If popupLocked (round resolved), show NO end turn and no alternative button
+    let actionHTML = "";
+    if(!popupLocked){
+      if(S.selected.length===0){
+        actionHTML = `
+          <button class="btn primary" onclick="endTurn()">End Turn</button>
+        `;
+      }else{
+        actionHTML = `
+          <button class="btn ghost" onclick="clearSelection()">Clear</button>
+          <button class="btn primary" onclick="playSelected()">Play Selected</button>
+        `;
+      }
+    }else{
+      actionHTML = ``;
+    }
+
+    const selectedNames = S.selected.map(i=>S.hand[i]).filter(Boolean).map(c=>c.name);
+    const chain = selectedNames.length ? selectedNames.map(esc).join(" → ") : "None";
+
+    showPopup({
+      title:"Your selection",
+      body:`<b>Chain:</b> ${chain}<br><b>Cost:</b> ${cost} / ${S.player.energy}`,
+      sub: popupLocked ? "" : "Tap selected cards again to unselect.",
+      actionsHTML: actionHTML,
+      lock: popupLocked // keep state consistent
+    });
+
+    handEl.innerHTML = S.hand.map((c,idx)=>{
+      const selected = S.selected.includes(idx);
+      const disabled = !selected && wouldExceedEnergy(idx);
+      const t = cardType(c);
+      const tLabel = t==="attack" ? "Attack" : (t==="defense" ? "Defense" : "Utility");
+
+      return `
+        <div class="card ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}"
+             onclick="selectCard(${idx})"
+             aria-disabled="${disabled ? "true" : "false"}">
+          <b>${selected ? "✅ " : ""}${esc(c.name)}</b>
+          <div class="desc">${esc(c.desc)}</div>
+          <div class="meta">
+            <span class="tag">${esc(c.meta)}</span>
+            <span class="tag">Type: ${tLabel}</span>
+            <span class="tag">⚡ Cost ${c.eff.cost||0}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function selectCard(idx){
+    if(popupLocked) return;
+    if(S.player.hp<=0 || S.enemy.hp<=0) return;
+
+    haptic("tap");
+
+    const pos = S.selected.indexOf(idx);
+    if(pos>=0){
+      S.selected.splice(pos,1);
+      render();
+      return;
+    }
+
+    if(wouldExceedEnergy(idx)){
+      haptic("warn");
+      const c=S.hand[idx];
+      const costNow=selectedCost();
+      const cCost=c?.eff?.cost||0;
+      showPopup({
+        title:"Not enough energy",
+        body:`You have <b>${S.player.energy}</b> energy.<br>
+              Selected cost: <b>${costNow}</b>.<br>
+              <b>${esc(c?.name || "That card")}</b> costs <b>${cCost}</b>, which would exceed your energy.`,
+        sub:"Unselect a card, End Turn, or pick a cheaper option.",
+        actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+        lock:true
+      });
+      return;
+    }
+
+    S.selected.push(idx);
+    render();
+  }
+
+  function clearSelection(){
+    if(popupLocked) return;
+    haptic("tap");
+    S.selected=[];
+    render();
+  }
+
+  function newGame(){
+    S={
+      round:1,
+      player:mech(),
+      enemy:mech(),
+      deck:[],
+      discard:[],
+      hand:[],
+      selected:[],
+      dampToPlayer:0,
+      dampToEnemy:0,
+      enemyPlanId:"MEASURED_ADVANCE",
+      enemyPlanLabel:ENEMY_PLAN.MEASURED_ADVANCE
+    };
+    buildDeck();
+    startRound();
+    popupLocked=false;
+    render();
+    showPopup({
+      title:"Welcome",
+      body:"Select cards to form a chain, then hit <b>Play Selected</b>. If you can’t (or don’t want to), use <b>End Turn</b>.",
+      sub:"The enemy’s plan is shown under their reactor status. It’s a hint, not a guarantee.",
+      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+      lock:true
+    });
+  }
+
+  document.getElementById("newBtn").addEventListener("click", ()=>{ haptic("ok"); newGame(); });
+
+  document.getElementById("rulesBtn").addEventListener("click", ()=>{
+    haptic("tap");
+    showPopup({
+      title:"Rules",
+      body: `
+<b>Goal</b><br>
+Reduce the enemy’s HP to 0 before yours hits 0.<br><br>
+
+<b>Round Flow</b><br>
+1) You select any number of cards (limited by energy).<br>
+2) <b>Play Selected</b> resolves your chain in order, then enemy resolves 2 cards.<br>
+3) Next round begins with energy refill and slight heat cooling.<br><br>
+
+<b>Energy</b><br>
+• You can only select cards whose total cost ≤ your current energy.<br>
+• Cards you can’t afford are disabled.<br>
+• If you select nothing, you can press <b>End Turn</b> (enemy still acts).<br><br>
+
+<b>When effects happen</b><br>
+Effects apply as each card resolves:<br>
+• Heal / Armor / Energy gains apply immediately when that card resolves.<br>
+• Damage is applied immediately (Armor absorbs first, then HP).<br><br>
+
+<b>Energy refill timing</b><br>
+At the <b>start of each round</b>:<br>
+• +2 Energy (max 6), but if in Meltdown: +2 then −1 penalty (net +1).<br><br>
+
+<b>Heat rules</b><br>
+At the <b>start of each round</b>: Heat −1.<br>
+• Heat 8+: Overheated → attacks deal −2 damage.<br>
+• Heat 10+: Meltdown → end-of-round −3 HP and next round −1 energy refill.<br><br>
+
+<b>Combos (apply between each pair in your chain)</b><br>
+• Attack→Attack: next +2 dmg, +2 heat<br>
+• Defense→Attack: next +3 dmg<br>
+• Utility→Attack: next attack costs −1 energy<br>
+• Attack→Defense: next defense +2 armor<br>
+• Utility→Defense: next defense also −2 heat<br><br>
+
+<b>Enemy plan</b><br>
+The label under the enemy’s reactor status describes their general behavior (a hint), not the exact cards.`,
+      sub:"OK to continue.",
+      actionsHTML:`<button class="btn primary" onclick="hidePopup()">OK</button>`,
+      lock:true
+    });
+  });
+
+  // expose
+  window.selectCard = selectCard;
+  window.clearSelection = clearSelection;
+  window.playSelected = playSelected;
+  window.endTurn = endTurn;
+  window.hidePopup = hidePopup;
+  window.newGame = newGame;
+
+  newGame();
+})();
+</script>
+</body>
+</html>
